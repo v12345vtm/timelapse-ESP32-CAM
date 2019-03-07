@@ -42,11 +42,10 @@ SD card format  : FAT32 , up to 4GB
   FLASHLED                gpio4
   led1                    gpio33 (mini smd ledje below ESP32-controler)
       SD card socket : pin 9 is SD ( = CARD DETECTION , is a card inserted ? )
-  https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/protocols/esp_http_server.html
-
+ 
   https://www.youtube.com/user/v12345vtm  please subscribe if this code helped you
 
-  this code  = https://github.com/v12345vtm/ESP32-IPCAM/blob/master/ESP32-IPCAM/IPCAM.ino
+  this code  = https://github.com/v12345vtm/timelapse-ESP32-CAM
   26feb2019
 
    // Restart ESP
