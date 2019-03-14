@@ -1031,6 +1031,10 @@ select {
 </style>
     </head>
    <body > 
+   
+   <script src="https://apis.google.com/js/platform.js"></script>
+
+<div class="g-ytsubscribe" data-channel="v12345vtm" data-layout="default" data-count="default"></div>
  <a href="https://www.youtube.com/user/v12345vtm" target="_blank" style="color:white">please subscribe to my channel</a>
 <a href=" /status" target="_blank" style="color:white">esp_status</a>
 
@@ -1465,6 +1469,11 @@ function streamclick(e) {
     </head>   
    <body onload="javascript:start();">
 <h2>ESP32-CAM JSON Websocket</h2>
+
+<script src="https://apis.google.com/js/platform.js"></script>
+
+<div class="g-ytsubscribe" data-channel="v12345vtm" data-layout="default" data-count="default"></div>
+
 <a href=" /"   style="color:red">main page settings</a>
 
  <br>
