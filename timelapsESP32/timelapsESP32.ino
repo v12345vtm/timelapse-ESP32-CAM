@@ -95,11 +95,10 @@ SD card format  : FAT32 , up to 4GB
 #define CAMERA_MODEL_AI_THINKER  //this ode is only for ESP32-CAM !
 #define PART_BOUNDARY "123456789000000000000987654321"
 
-//const char* ssid = "YOUR WIFI SSID";
-//const char* password = "YOUR WIFI PASS";
+const char* ssid = "YOUR WIFI SSID";
+const char* password = "YOUR WIFI PASS";
 
-const char* ssid = "WiFi-2.4-0560";
-const char* password = "mereldaan";
+ 
 String Lastfilenamevalue = "esp32-cam19";
 
 
