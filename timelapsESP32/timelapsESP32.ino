@@ -11,6 +11,7 @@
    -Jpg pictures can be stored into the SDcard on the board.
    -the webserver uses JSON format to parse the esp32-cam variables
    -toggle the small led on the pcb via webinterface ( socket)
+   -accespoint
 
    TO program this code to your ESP32-CAM use these settings :
   ESP32 Wrovermodule
