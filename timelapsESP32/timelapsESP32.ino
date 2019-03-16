@@ -72,19 +72,40 @@ SD card format  : FAT32 , up to 4GB
 #define CAMERA_MODEL_AI_THINKER  //this ode is only for ESP32-CAM !
 #define PART_BOUNDARY "123456789000000000000987654321"
 
+
+//////////////////////////
+
+ 
+#include "WebSocketsServer.h"//WebSocketsServer
+#include "esp_camera.h"
+#include "esp_timer.h"
+#include "img_converters.h"
+#include "Arduino.h"
+#include "fb_gfx.h"
+#include "fd_forward.h"
+#include "fr_forward.h"
+#include "FS.h" //sd card esp32
+#include "SD_MMC.h" //sd card esp32
+#include "soc/soc.h" //disable brownour problems
+#include "soc/rtc_cntl_reg.h"  //disable brownour problems 
+#include <WiFi.h>
+#include "dl_lib.h"
+#include "esp_http_server.h"
+#include "time.h"
+#define CAMERA_MODEL_AI_THINKER  //this ode is only for ESP32-CAM !
+#define PART_BOUNDARY "123456789000000000000987654321"
+
 //const char* ssid = "YOUR WIFI SSID";
 //const char* password = "YOUR WIFI PASS";
 
-const char* ssid = "WiFi-ssid";
-const char* password = "wifipassword";
-
-
-String Lastfilenamevalue = "esp32-cam16";
+const char* ssid = "WiFi-2.4-0560";
+const char* password = "mereldaan";
+String Lastfilenamevalue = "esp32-cam19";
 
 
 const int LED_1 = 33; //small led1 on back of the ESP32-CAM
-const int FOTO_FLASH = 4; //BIG led1 on front of the ESP32-CAM (default is dual use with sdcard data
-const int inputoutput = 16; //u2rxd is nog vrij blijkbaar
+//const int FOTO_FLASH = 4; //BIG led1 on front of the ESP32-CAM (default is 4xdual use with sdcard data
+//const int inputoutput = 16; //u2rxd is nog vrij blijkbaar
 
 WebSocketsServer webSocket = WebSocketsServer(81);
 static void writeLED(bool);
@@ -97,7 +118,7 @@ const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 3600;
 const int   daylightOffset_sec = 3600;
 int filename = 1 ; //filename when internettime fails
-String tc_ ;
+String vith ;
 String sdmaxvalue = "11";
 String sdusedvalue = "22";
 String flashledvalue = "33";
@@ -108,6 +129,37 @@ String Timelapsecountervalue = "0";//voor als we een coutndoenw timelapse willen
 String payloadstring = "";
 String plkey , plvalue ; //payload split op :
 String streamportvalue = "9601"; // nog updaten in index javascript
+
+
+void scanwifis()
+{
+    Serial.println("scan start");
+
+    // WiFi.scanNetworks will return the number of networks found
+    int n = WiFi.scanNetworks();
+    Serial.println("scan done");
+    if (n == 0) {
+        Serial.println("no networks found");
+    } else {
+        Serial.print(n);
+        Serial.println(" networks found");
+        for (int i = 0; i < n; ++i) {
+            // Print SSID and RSSI for each network found
+            Serial.print(i + 1);
+            Serial.print(": ");
+            Serial.print(WiFi.SSID(i));
+            Serial.print(" (");
+            Serial.print(WiFi.RSSI(i));
+            Serial.print(")");
+            Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN)?" ":"*");
+            delay(10);
+        }
+    }
+    Serial.println("");
+
+     
+}
+
 
 typedef struct {
   httpd_req_t *req;
@@ -167,36 +219,36 @@ void makejsoncontainer()
 {
   //de json is een string die we sturen via socket
   //de browser javascript zullen we dit socket doen parsen naar json object
-  tc_ = "" ; //   \" is een quote
-  tc_ += '{';
-  tc_ +=   "\"RTC\":\"" ; //
-  tc_ += realtimeklok(); //
+  vith = "" ; //   \" is een quote
+  vith += '{';
+  vith +=   "\"RTC\":\"" ; //
+  vith += realtimeklok(); //
 
-  tc_ +=   "\",\"ESPtimer\":\"" ; //
-  tc_ += longlong2string (esp_timer_get_time()); //runtime van de esp in seconden
+  vith +=   "\",\"ESPtimer\":\"" ; //
+  vith += longlong2string (esp_timer_get_time()); //runtime van de esp in seconden
 
-  tc_ +=   "\",\"Streamport\":\"" ; //
-  tc_ += streamportvalue; //runtime van de esp in seconden
+  vith +=   "\",\"Streamport\":\"" ; //
+  vith += streamportvalue; //runtime van de esp in seconden
 
-  tc_ +=   "\",\"TLrunning\":\"" ; //
-  tc_ += String(tlrunningvalue); //is timelapse bezig of niet ? ja of nee
+  vith +=   "\",\"TLrunning\":\"" ; //
+  vith += String(tlrunningvalue); //is timelapse bezig of niet ? ja of nee
 
-  tc_ +=   "\",\"SDmax\":\"" ; //
-  tc_ += sdmaxvalue;
-  tc_ +=   "\",\"SDused\":\"" ; //
-  tc_ += sdusedvalue;
-  tc_ +=   "\",\"Flashled\":\"" ; //
-  tc_ += flashledvalue;
-  tc_ +=   "\",\"Led\":\"" ; //
-  tc_ += String(LEDStatus);
-  tc_ +=   "\",\"Timelapseinterval\":\"" ; //
-  tc_ += String(TLinterval); //TLint:60 komt via socket vd browser en bewaren we als int in de esp
-  tc_ +=   "\",\"Timelapsecounter\":\"" ; //
-  tc_ += Timelapsecountervalue;
-  tc_ +=   "\",\"Lastfilename\":\"" ; //
-  tc_ += Lastfilenamevalue;
-  tc_ += "\"}";
-  Serial.print(tc_);
+  vith +=   "\",\"SDmax\":\"" ; //
+  vith += sdmaxvalue;
+  vith +=   "\",\"SDused\":\"" ; //
+  vith += sdusedvalue;
+  vith +=   "\",\"Flashled\":\"" ; //
+  vith += flashledvalue;
+  vith +=   "\",\"Led\":\"" ; //
+  vith += String(LEDStatus);
+  vith +=   "\",\"Timelapseinterval\":\"" ; //
+  vith += String(TLinterval); //TLint:60 komt via socket vd browser en bewaren we als int in de esp
+  vith +=   "\",\"Timelapsecounter\":\"" ; //
+  vith += Timelapsecountervalue;
+  vith +=   "\",\"Lastfilename\":\"" ; //
+  vith += Lastfilenamevalue;
+  vith += "\"}";
+  Serial.print(vith);
 }
 
 String longlong2string ( uint64_t longlong )
@@ -696,6 +748,64 @@ static const char PROGMEM INDEX2_HTML[] = R"rawliteral(
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width,initial-scale=1">
         <title>v12345vtm ESP32-IPCAM</title>
+<script>
+var websock;
+var vt_tjson;
+
+function wsjsonrecieved(evt)
+{
+ var vt_t = evt.data;
+ try {
+   vt_tjson = JSON.parse(vt_t);
+  console.log(vt_tjson);
+console.log("hierboven?");
+  } catch (e) {
+    // error  
+    // console.log('geen json format gezien');
+    return;
+  }
+ 
+  var keys = Object.keys(vt_tjson);
+  var waardes = Object.values(vt_tjson);
+ 
+   var e = document.getElementById('ledstatus');
+    if (vt_tjson.Led === "1") {e.style.color = 'red';}
+    else 
+  if (vt_tjson.Led === "0") {e.style.color = 'black';}
+
+ 
+ 
+   
+}
+
+function start() {
+  websock = new WebSocket('ws://' + window.location.hostname + ':81/');
+ // websock = new WebSocket('ws://192.168.1.20:81/');
+  websock.onopen = function(evt) { 
+  console.log('websock open'); 
+   wsjsonrecieved(evt);//parse json to html  
+  };
+  
+  websock.onclose = function(evt) { console.log('websock close'); };
+  websock.onerror = function(evt) { console.log(evt); };
+  websock.onmessage = function(evt) {
+   // console.log(evt);
+    var e = document.getElementById('ledstatus');
+    if (true) {
+      console.log('socket from esp recieved');
+      //console.log(evt);
+ wsjsonrecieved(evt);//parse updated json to html
+
+    }
+  };
+}
+function buttonclick(e) {
+  websock.send(e.id);
+}
+
+
+</script>
+        
 <style>body {
   font-family: Arial, Helvetica, sans-serif;
   background: #181818;
@@ -1030,11 +1140,7 @@ select {
 
 </style>
     </head>
-   <body > 
-   
-   <script src="https://apis.google.com/js/platform.js"></script>
-
-<div class="g-ytsubscribe" data-channel="v12345vtm" data-layout="default" data-count="default"></div>
+ <body onload="javascript:start();">
  <a href="https://www.youtube.com/user/v12345vtm" target="_blank" style="color:white">please subscribe to my channel</a>
 <a href=" /status" target="_blank" style="color:white">esp_status</a>
 
@@ -1218,15 +1324,20 @@ select {
                                 <label class="slider" for="colorbar"></label>
                             </div>
                         </div>
-                      
+                       <script src="https://apis.google.com/js/platform.js"></script>
+
+<div class="g-ytsubscribe" data-channel="v12345vtm" data-layout="default" data-count="default"></div>
+ 
                               
                         <section id="buttons">
                             <button id="get-still">Get Still</button>
                             <button id="toggle-stream">Start Stream</button>
                             <button id="Image2SD"  >Save Image2SD</button>
+                           <button id="ledon"  type="button" onclick="buttonclick(this);">On</button> 
+<button id="ledoff" type="button" onclick="buttonclick(this);">Off</button>
                                
                         </section>
-
+<div id="ledstatus"><b>LED</b></div>
                        
                     </nav>
                 </div>
@@ -1410,6 +1521,13 @@ document.getElementById("TLint").value =  vt_tjson.Timelapseinterval;
     if (vt_tjson.Led === "1") {e.style.color = 'red';}
     else 
   if (vt_tjson.Led === "0") {e.style.color = 'black';}
+
+  var f = document.getElementById('flashstatus');
+    if (vt_tjson.Led === "0") {f.style.color = 'red';}
+    else 
+  if (vt_tjson.Led === "1") {f.style.color = 'black';}
+
+  
   
      var bdknop = document.getElementById('Bd');
     if (vt_tjson.TLrunning === "1") {bdknop.style.color = 'red';bdknop.innerHTML = "stop TL";}
@@ -1469,25 +1587,24 @@ function streamclick(e) {
     </head>   
    <body onload="javascript:start();">
 <h2>ESP32-CAM JSON Websocket</h2>
-
-<script src="https://apis.google.com/js/platform.js"></script>
-
-<div class="g-ytsubscribe" data-channel="v12345vtm" data-layout="default" data-count="default"></div>
-
 <a href=" /"   style="color:red">main page settings</a>
 
  <br>
  <a class="kader" href="https://www.youtube.com/user/v12345vtm" target="_blank" style="color:red">please subscribe to my channel v12345vtm</a>
+
+ <script src="https://apis.google.com/js/platform.js"></script>
+<div class="g-ytsubscribe" data-channel="v12345vtm" data-layout="default" data-count="default"></div>
+ 
  
 <p id="jsonhtml"></p>
     <span  id="vt_html"></span > SDcard :<progress id="sdmem" value="50" max="100"></progress>
     
- <div id="ledstatus"><b>LED</b></div>
+ <div id="ledstatus"><b>LED</b></div><div id="flashstatus"><b>FLASH ( req. hw. mod)</b></div>
 <button id="ledon"  type="button" onclick="buttonclick(this);">On</button> 
 <button id="ledoff" type="button" onclick="buttonclick(this);">Off</button>
-<button id="Ba" onclick="fotoclick(this);">Ba Get Still</button>
+<button id="Ba" onclick="fotoclick(this);">Get Still</button>
 <button id="Bb" onclick="streamclick(this);">start stream</button>
-<button id="Bc" onclick="buttonclick(this); ">Bc Save Image2SD</button>
+<button id="Bc" onclick="buttonclick(this); ">Save Image2SD</button>
 <button id="Bd" onclick="buttonclick(this);" >Startstop Timelapse2SD</button>                 
 
                   <div  ><label  >timelapseinterval</label>
@@ -1523,8 +1640,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
         IPAddress ip = webSocket.remoteIP(num);
         Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\r\n", num, ip[0], ip[1], ip[2], ip[3], payload);
         webSocket.sendTXT(num, "hello from arduino sketch");
-        makejsoncontainer (); //tc_ json string updaten
-        webSocket.sendTXT(num,  tc_ );//send 1e json to connected client
+        makejsoncontainer (); //vith json string updaten
+        webSocket.sendTXT(num,  vith );//send 1e json to connected client
       }
       break;
     case WStype_TEXT:
@@ -1572,15 +1689,15 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
         }
 
         payloadstring = "";
-        makejsoncontainer (); //tc_ json string updaten
-        webSocket.sendTXT(num,  tc_ );//send updated  json to connected client
+        makejsoncontainer (); //vith json string updaten
+        webSocket.sendTXT(num,  vith );//send updated  json to connected client
 
         // send data to all connected clients
-        char tc_char[300];
-        tc_.toCharArray(tc_char, tc_.length() + 1);
-        Serial.println(tc_.length() + 1); //126
-        Serial.println("tc_lengte letop 300bytes lengte voorzien");
-        webSocket.broadcastTXT(tc_char , tc_.length());
+        char vithchar[300];
+        vith.toCharArray(vithchar, vith.length() + 1);
+        Serial.println(vith.length() + 1); //126
+        Serial.println("vithlengte letop 300bytes lengte voorzien");
+        webSocket.broadcastTXT(vithchar , vith.length());
         break;
       }      //jump to case label [-fpermissive]
 
@@ -1656,8 +1773,8 @@ void startCameraServer() {
     httpd_register_uri_handler(camera_httpd, &capture_uri);
     httpd_register_uri_handler(camera_httpd, &export_uri);
   }
-  config.server_port =  streamportvalue.toInt() ; //9601;//Cint(streamportvalue)
-  config.ctrl_port = streamportvalue.toInt() ; //9601;//Cint(streamportvalue)
+  config.server_port =   streamportvalue.toInt() ; //9601;//Cint(streamportvalue)
+  config.ctrl_port =  streamportvalue.toInt() ; //9601;//Cint(streamportvalue)
 
   Serial.printf("Starting stream server on port: '%d'\n", config.server_port);
   if (httpd_start(&stream_httpd, &config) == ESP_OK) {
@@ -1738,12 +1855,13 @@ static void writeLED(bool LEDon)
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout problems
   pinMode (LED_1, OUTPUT);//back led
-  pinMode (4, OUTPUT);//flashled
-  writeLED(false);
+ // pinMode (inputoutput, OUTPUT);//flashled
+  writeLED(true);
   Serial.begin(115200);
   Serial.setDebugOutput(true);
   Serial.println();
   Serial.println("v12345vtm \n");
+
 
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -1775,6 +1893,19 @@ void setup() {
     Serial.printf("Camera init failed with error 0x%x", err);
     return;
   }
+
+
+
+  scanwifis();// show all ssid 's around
+
+
+  // You can remove the password parameter if you want the AP to be open.
+  WiFi.softAP("ESP32C", password);
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
+
+  
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -1790,8 +1921,9 @@ void setup() {
 
   printLocalTime();
   Serial.println("\n internet time ok \n");
-
-  if (!SD_MMC.begin()) {
+//enable - disable SDcard
+bool sdcardenable = true ; 
+  if (!SD_MMC.begin() and sdcardenable ) {
     Serial.println("initCard Mount Failed");
   }
   else
@@ -1850,6 +1982,11 @@ void setup() {
 
 void loop() {
   webSocket.loop();
+
+  
+
+
+  
   if (longlong2string(esp_timer_get_time()).equals(Timelapsecountervalue)  && tlrunningvalue)
   {
      //time is verstreken
