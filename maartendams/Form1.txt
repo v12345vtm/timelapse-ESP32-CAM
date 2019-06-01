@@ -1,0 +1,119 @@
+using System;
+using System.Collections;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Text;
+using System.Windows.Forms;
+using System.Net;
+using System.Net.Sockets;
+using System.IO;
+using System.Threading;
+
+namespace ReceiveFiles
+{
+    public partial class Form1 : Form
+    {
+        private const int BufferSize = 1024;
+        public string Status = string.Empty;
+        public Thread T = null;
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            label1.Text = "Server is Running...";
+
+            //Load startupform & Thread TCP receiver
+            ThreadStart Ts = new ThreadStart(StartReceiving);
+            T = new Thread(Ts);
+            T.Start();
+
+           
+        }
+        public void StartReceiving()
+        {
+            ReceiveTCP(8889);
+        }
+        
+        
+        public void ReceiveTCP(int portN)
+        {
+            TcpListener Listener = null;
+            try
+            {
+
+                //Listen on all adresses
+                Listener = new TcpListener(IPAddress.Any, portN);
+                Listener.Start();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            byte[] RecData = new byte[BufferSize];
+            int RecBytes;
+
+            for (; ; )
+            {
+                TcpClient client = null;
+                NetworkStream netstream = null;
+                Status = string.Empty;
+                try
+                {
+                    
+                    
+                                      
+
+                    if (Listener.Pending())
+                    {
+
+                        //Start client communication
+                        client = Listener.AcceptTcpClient();
+                        netstream = client.GetStream();
+                       // Status = "Connected to a client\n";
+                    
+                           //Create Unique filename on receiving the jpg
+                            string bestandsnaam = DateTime.Now.ToString("MM-dd-yyyy-h-mm tt");
+                            string SaveFileName = "C:/Temp/CMS/" + bestandsnaam + ".jpg";
+                           
+                        //Start reading networkstream and flushing to filestream
+                            if (SaveFileName != string.Empty)
+                            {
+                                int totalrecbytes = 0;
+                                FileStream Fs = new FileStream(SaveFileName, FileMode.OpenOrCreate, FileAccess.Write);
+                                while ((RecBytes = netstream.Read(RecData, 0, RecData.Length)) > 0)
+                                {
+                                    Fs.Write(RecData, 0, RecBytes);
+                                    totalrecbytes += RecBytes;
+                                }
+                                Fs.Close();
+                            }
+
+                            //close all streams
+                            netstream.Close();
+                            client.Close();
+
+                      
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                  
+                }
+            }
+        }
+
+        private void btnExit_Click(object sender, EventArgs e)
+        {
+            T.Abort();
+            this.Close();
+        }
+
+        
+    }
+}
